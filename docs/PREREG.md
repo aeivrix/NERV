@@ -86,4 +86,8 @@ about 0.59 s.
 
 ## Deviations after the freeze
 
-None yet.
+None that change the analysis. Two code-only fixes went in after the run, and a
+re-run of model A gives the identical AUC (0.597):
+
+- BLAS threads are capped at 1 per permutation worker.
+- A pandas fragmentation warning was fixed.

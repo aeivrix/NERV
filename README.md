@@ -25,6 +25,8 @@ from `.python-version` and `uv.lock`.
 make setup     # install the environment
 make data      # download ds001787 (~6 GB) and the behavioural logs into data/raw/
 make labels    # stage 1: true ratings from the logs, aligned to the EEG
+make preprocess  # stage 2: filter, ICA, probe-locked epochs (~1 h)
+make models    # stage 3: features, models A/B/C, permutation tests (~1 h)
 make test
 ```
 

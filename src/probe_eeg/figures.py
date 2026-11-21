@@ -67,7 +67,11 @@ def auc_figure(table: Path, fig_path: Path) -> None:
         )
     ax.axhline(0.5, color="k", ls=":", lw=0.8)
     ax.set_xticks([0, 1, 2], ["A: before", "B: the reaction", "C: both"])
-    ax.set(ylabel="AUC within subject (MW vs MED)", ylim=(0, 1), title="Who reads whom")
+    ax.set(
+        ylabel="AUC within subject (MW vs MED)",
+        ylim=(0, 1),
+        title="One line per person (dotted = chance)",
+    )
     fig.savefig(fig_path, dpi=150, bbox_inches="tight")
 
 

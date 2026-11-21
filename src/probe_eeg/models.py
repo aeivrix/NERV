@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_config
 from scipy.stats import wilcoxon
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score
@@ -26,8 +26,9 @@ def dataset(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby(["subject", "session"])[feats]
     # Scaled on every clean probe, fence-sitters too: no label ever touches the scaling.
     z = ((df[feats] - g.transform("mean")) / g.transform("std")).fillna(0.0)
-    df = df.drop(columns=feats).join(z)
-    df["y"] = state(df).map({"mw": 1, "med": 0})
+    df = pd.concat(
+        [df.drop(columns=feats), z, state(df).map({"mw": 1, "med": 0}).rename("y")], axis=1
+    )
     return df.dropna(subset=["y"]).astype({"y": int}).reset_index(drop=True)
 
 
@@ -84,7 +85,10 @@ def evaluate(df: pd.DataFrame, n_perm: int = N_PERM):
         s = scores[name] = loso(X, y, groups)
         auc, per_subject[name] = within_auc(y, s, groups)
         lo, hi = bootstrap_ci(per_subject[name], pairs[per_subject[name].index])
-        null = Parallel(n_jobs=-1)(delayed(null_auc)(X, y, groups, k) for k in range(n_perm))
+        with parallel_config(
+            "loky", inner_max_num_threads=1
+        ):  # 10 workers x 10 BLAS threads = traffic jam
+            null = Parallel(n_jobs=-1)(delayed(null_auc)(X, y, groups, k) for k in range(n_perm))
         rows.append(
             {
                 "model": name,

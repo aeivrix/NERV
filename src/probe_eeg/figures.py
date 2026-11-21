@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib
 import mne
 import numpy as np
+import pandas as pd
 
 from probe_eeg.preprocess import PROBE, SOUND_DELAY_S
 
@@ -50,12 +51,35 @@ def erp_figure(epochs_dir: Path, fig_path: Path) -> float:
     return n1
 
 
+def auc_figure(table: Path, fig_path: Path) -> None:
+    """Per-subject AUC for A, B, C; a line per person, hollow = fewer than 3 of a class."""
+    per = pd.read_csv(table, index_col="subject")
+    fig, ax = plt.subplots(figsize=(5, 4))
+    for _, r in per.iterrows():
+        ax.plot([0, 1, 2], r[["A", "B", "C"]], color="grey", lw=0.6, alpha=0.5)
+        ax.scatter(
+            [0, 1, 2],
+            r[["A", "B", "C"]],
+            s=24,
+            zorder=3,
+            color=["C0", "C1", "C2"],
+            facecolor=["C0", "C1", "C2"] if r.solid else "none",
+        )
+    ax.axhline(0.5, color="k", ls=":", lw=0.8)
+    ax.set_xticks([0, 1, 2], ["A: before", "B: the reaction", "C: both"])
+    ax.set(ylabel="AUC within subject (MW vs MED)", ylim=(0, 1), title="Who reads whom")
+    fig.savefig(fig_path, dpi=150, bbox_inches="tight")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--epochs", type=Path, default=Path("data/interim/epochs"))
     ap.add_argument("--out", type=Path, default=Path("results/figures/erp_qc.png"))
+    ap.add_argument("--aucs", type=Path, default=Path("results/tables/subject_auc.csv"))
     a = ap.parse_args()
     print(f"N1 at {erp_figure(a.epochs, a.out) * 1e3:.0f} ms after the trigger -> {a.out}")
+    if a.aucs.exists():  # only after `make models`
+        auc_figure(a.aucs, a.out.with_name("subject_auc.png"))
 
 
 if __name__ == "__main__":

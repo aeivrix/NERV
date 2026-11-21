@@ -86,22 +86,25 @@ Ratings come from the behavioural logs, not `events.tsv`.
   both sub-010 sessions (20 and 18 bad channels).
 
 ### 4. Features
-- **Pre:** log band power (theta, alpha, beta) per channel or region.
-- **Probe:** mean ERP amplitude in N1 and P2 windows relative to the voice onset
-  (about 0.59 s after the trigger), at fronto-central electrodes. Also the post-voice
-  alpha/theta change relative to the pre-trigger baseline.
+Frozen in [PREREG.md](PREREG.md).
+- **Pre:** log band power (theta, alpha, beta) per channel.
+- **Probe:** mean ERP amplitude in N1, P2 and P3 windows relative to the voice onset
+  (about 0.59 s after the trigger), per channel. Also the alpha/theta change after the
+  voice relative to the second before the trigger.
 
 ### 5. Models
 - **A:** pre-probe only, the standard approach.
 - **B:** probe response only.
 - **C:** A + B.
-- Start with regularised logistic regression. Add a small CNN (EEGNet) only if the
-  simple models work.
+- **Classifier:** shrinkage LDA, which has nothing to tune; see
+  [PREREG.md](PREREG.md#deviations-from-planmd) for why not logistic regression.
+- Add a small CNN (EEGNet) only if the simple models work.
 
 ### 6. Evaluation
-- Leave-one-subject-out cross-validation. Nothing from the test person is used for
-  training, scaling or feature selection.
-- Metrics: balanced accuracy and AUC, per subject and pooled.
+- Leave-one-subject-out cross-validation. The test person's labels are never used.
+  Their unlabelled EEG sets their own feature scaling (z-scored within recording).
+- **Primary metric:** within-subject AUC (same-person pairs only). Also reported:
+  per-subject AUC, pooled AUC and balanced accuracy.
 - Chance level from permutation tests that shuffle labels within subjects.
 - 95% confidence intervals by bootstrapping over subjects.
 - H2: compare C and A on per-subject AUC with a paired test.

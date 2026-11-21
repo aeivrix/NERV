@@ -26,15 +26,25 @@ press with its time and question number (`status`).
 
 ## Issue 2: logs and recordings don't match one-to-one
 
-- 42 session logs vs 40 recordings, for example `sub14_2_info.txt` (sub-014 has one
-  recording) and `sub23_info_old.txt`.
-- In `sub-001/ses-01`, the EEG has an extra probe marker with no responses after the
-  first probe.
-- A public reanalysis reports that alignment fails for 5 of 41 sessions
-  ([ChristianV997/NeuroTopology-Sim](https://github.com/ChristianV997/NeuroTopology-Sim));
-  not verified here.
+`make labels` (`src/probe_eeg/labels.py`) matches each log to a recording by probe
+timing under one clock offset. It keeps the offset and recording with the most probes
+whose EEG answer triggers agree with the log. Results are in
+`data/interim/label_audit.csv`:
 
-**Fix:** align each log to its recording by probe timing; drop sessions that don't align.
+- **Aligned:** 39 of 40 recordings, covering 938 probes from 23 subjects. For 99.5%
+  of matched probes, the EEG triggers equal the log's non-zero answers.
+- **sub-013 is lost:** its only log (`sub13_info.txt`) belongs to a different session.
+  The probe gaps and answers don't match its recording, so sub-013 is excluded.
+- **Unused logs:** `sub14_info.txt` and `sub23_info.txt`. Their recordings match
+  `sub14_2_info.txt` and `sub23_info_old.txt` instead.
+- **Shared schedules:** probe times come from a random sequence seeded by subject
+  name, so two logs of one subject can share a schedule. That's why alignment checks
+  answers, not just timing.
+- **Late starts:** three recordings (`sub-003`, `sub-004` and `sub-022`, session 1 or
+  2) have clock offsets of −1,200 to −1,700 s, meaning EEG started partway through the
+  session. All of their probes still agree.
+- **Unmatched markers:** 7 extra probe markers in the EEG have no log entry
+  (e.g. `sub-001/ses-01`).
 
 ## Issue 3: group is confounded with sex
 
@@ -55,13 +65,16 @@ Expert vs novice contrasts can't be separated from sex differences with n = 24.
 | Temp, GSR2 | Flat |
 | Other EXG | Low variance |
 
-## Label counts (from logs, approximate)
+## Label counts (`data/interim/probes.csv`, agreeing probes only)
 
-About 990 fully rated probes. Using mind wandering = Q2 ≥ 2, and meditation = Q1 ≥ 2
-with Q2 ≤ 1:
+933 probes with Q1 and Q2. Using mind wandering = Q2 ≥ 2, and meditation = Q1 ≥ 2 with
+Q2 ≤ 1:
 
-- about 370 mind-wandering probes;
-- about 425 meditation probes;
-- about 18 of 24 people have at least 5 of each class.
+| | Mind wandering | Meditation |
+|---|---|---|
+| Experts | 130 | 283 |
+| Novices | 210 | 120 |
+| Total | 340 | 403 |
 
-These counts include the unmatched log files.
+- 190 probes fall in neither class and are excluded.
+- 17 of 23 subjects have at least 5 probes of each class.

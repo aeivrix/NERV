@@ -16,18 +16,21 @@ Brandmeyer & Delorme, *Exp Brain Res* 2018,
 [doi:10.1007/s00221-016-4811-5](https://doi.org/10.1007/s00221-016-4811-5).
 The Zenodo record 2536267 is an older copy of the same recordings; don't combine the two.
 
-Download (~6.1 GB) into `data/raw/` (git-ignored):
-
-```bash
-aws s3 sync --no-sign-request s3://openneuro.org/ds001787 data/raw/ds001787
-```
-
 ## Setup
 
+Needs [uv](https://docs.astral.sh/uv/). Python 3.14 and exact package versions come
+from `.python-version` and `uv.lock`.
+
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
+make setup     # install the environment
+make data      # download ds001787 (~6 GB) and the behavioural logs into data/raw/
+make labels    # stage 1: true ratings from the logs, aligned to the EEG
+make test
 ```
+
+If the dataset already exists elsewhere, link it instead of downloading:
+`ln -s /path/to/ds001787 data/raw/ds001787` and fetch only the logs (see the `data`
+target), or pass `BIDS=/path/to/ds001787` to `make`.
 
 ## Layout
 
@@ -36,7 +39,8 @@ data/raw/         original BIDS dataset, never edited
 data/interim/     aligned labels, epochs
 data/processed/   feature tables used by models
 notebooks/        exploration, numbered: 01-labels.ipynb, 02-epochs.ipynb, ...
-src/probe_eeg/    reusable code imported by notebooks and scripts
+src/probe_eeg/    pipeline code; each stage runs as `python -m probe_eeg.<stage>`
+tests/            checks for the riskiest code (label recovery)
 results/          figures/ and tables/ that go into the write-up
 docs/             plan and data notes
 ```

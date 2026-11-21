@@ -26,7 +26,7 @@ the standard 10 s pre-probe window?
 
 Fix these before looking at results; see *Preregistration* below.
 
-- **H1:** the 0–1 s probe response predicts mind wandering vs meditation above chance
+- **H1:** the first second of the response to the voice predicts mind wandering vs meditation above chance
   in people the model has never seen.
 - **H2:** pre-probe and probe-response features together beat pre-probe features
   alone.
@@ -49,20 +49,47 @@ Ratings come from the behavioural logs, not `events.tsv`.
 - Output: one table with one row per probe: subject, session, onset, Q1, Q2, Q3,
   response latency.
 
-### 2. Preprocessing (MNE-Python)
-- Common average reference, 1–40 Hz band-pass, 50 Hz notch.
-- ICA to remove eye and muscle components; mark bad channels.
-- Apply the same pipeline to every subject.
+### 2. Preprocessing (MNE-Python, `make preprocess`)
+- **Filter:** 0.1–40 Hz. The 40 Hz low-pass also removes 50 Hz mains, so there's no
+  notch filter. The 0.1 Hz high-pass keeps the ERP intact.
+- **Bad channels:** found with LOF on a 1 Hz high-passed copy, interpolated after ICA.
+- **Reference:** average, applied again after interpolation.
+- **ICA:** extended infomax with 25 components, fit on the 1 Hz copy. Removes eye
+  components (Fp1/Fp2 stand in for the missing EOG lead) and muscle components.
+- **Same pipeline for every recording,** with a fixed seed.
 
 ### 3. Epochs
-- **Pre:** −10 to −0.05 s before probe onset, as in the original paper.
-- **Probe:** −0.2 to 1.0 s around probe onset. This ends well before the median
-  first key press at about 3.1 s.
+- One epoch per probe, −10.05 to +1.6 s around the probe trigger, from probes whose
+  EEG triggers agree with the logs.
+- **Pre:** −10.05 to −0.05 s, as in the original paper. It counts as clean when its
+  peak-to-peak amplitude above 1 Hz stays under 150 µV and it starts after the
+  previous probe's Q&A ended.
+- **Probe:** −0.2 to 1.6 s after the trigger, which is about 1 s after the voice
+  arrives. It counts as clean under the same amplitude rule. The earliest first key
+  press in the whole dataset is at 2.3 s, so no window contains a button press.
+- **Flagged, not dropped:** windows are marked clean or not, so later stages decide
+  what to keep.
+- **Voice timing (measured):** the voice reaches the ear about **0.59 s after the
+  trigger**, not at 0.
+  - The script pauses 50 ms before playing the voice, the audio file starts 4 ms in,
+    and MATLAB's `sound()` adds the rest.
+  - Evidence: the auditory N1 peaks at a median of 686 ms after the trigger (middle
+    half 667–699 ms, range 621–738 ms across 23 subjects). An N1 normally comes about
+    100 ms after sound onset.
+  - Feature windows are set relative to `SOUND_DELAY_S` in
+    `src/probe_eeg/preprocess.py`.
+  - The spread across subjects is about 80 ms; within-subject jitter hasn't been
+    measured. Jitter smears the ERP, so window-mean features are safer than single
+    peak latencies.
+- **Unusable recordings:** a recording is marked unusable when more than 20% of its
+  channels are bad (13 or more). This was decided before any modelling. It excludes
+  both sub-010 sessions (20 and 18 bad channels).
 
 ### 4. Features
 - **Pre:** log band power (theta, alpha, beta) per channel or region.
-- **Probe:** ERP amplitudes (N1, P2) at central electrodes, and post-probe
-  alpha/theta change relative to the pre-probe baseline.
+- **Probe:** mean ERP amplitude in N1 and P2 windows relative to the voice onset
+  (about 0.59 s after the trigger), at fronto-central electrodes. Also the post-voice
+  alpha/theta change relative to the pre-trigger baseline.
 
 ### 5. Models
 - **A:** pre-probe only, the standard approach.
@@ -101,6 +128,10 @@ These decide whether a result means anything.
 
 - **Preregistration:** post hypotheses, labels, features and the evaluation on OSF
   before running models. This turns "we found X" into "we predicted X".
+  - **Disclosure for the preregistration:** on 2026-11-21, during stage 2 QC, one
+    grand-average ERP split by state (mind wandering vs meditating) was plotted and
+    viewed. It used the old −0.2 to 1.0 s window and no statistics were run. The two
+    curves looked similar by eye. QC figures have been condition-blind since then.
 - **Reproducibility:** pinned environment, fixed seeds, and one command per stage
   that regenerates every figure and table from `data/raw/`.
 - **Data note:** write up the `events.tsv` zero-rating issue and the alignment

@@ -79,3 +79,15 @@ Q2 ≤ 1:
 
 - 190 probes fall in neither class and are excluded.
 - 17 of 23 subjects have at least 5 probes of each class.
+
+## Preprocessing QC (`make preprocess`, `data/interim/epochs/qc.csv`)
+
+- **Usable recordings:** 37 of 39. Both sub-010 sessions are excluded for too many
+  bad channels (20 and 18 of 64; the limit is 12, decided before modelling).
+- **Epochs in usable recordings:** 885.
+  - 670 have a clean pre-probe window.
+  - 813 have a clean probe window.
+- **ICA:** removed a median of 7 components per recording (range 0–19).
+- **Voice arrival:** the grand-average ERP (`results/figures/erp_qc.png`, labels not
+  used) shows N1 at 676 ms and P2 at about 800 ms after the trigger. So the voice
+  arrives about 0.59 s after the trigger (see the plan, section 3).

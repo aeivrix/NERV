@@ -1,8 +1,9 @@
 """Checks for label recovery: run with `make test`."""
 
 import numpy as np
+import pandas as pd
 
-from probe_eeg.labels import align, parse_log
+from probe_eeg.labels import align, parse_log, state
 
 LOG = """\
 MW question asked at time  54.1 second
@@ -26,6 +27,7 @@ def test_parse_log_keeps_zeros_and_ignores_stray_and_cancel_keys():
     assert log[["q1", "q2"]].to_numpy().tolist() == [[1, 1], [0, 2], [3, 2]]
     assert log.q3.iloc[0] == 0 and np.isnan(log.q3.iloc[1])  # 'c' cancelled Q3
     assert abs(log.rt1_s.iloc[0] - 4.3) < 1e-9
+    assert log.qa_s.round(1).tolist() == [12.2, 8.0, 8.0]  # the stray status-0 key doesn't count
 
 
 def test_align_uses_answers_not_just_timing():
@@ -36,3 +38,8 @@ def test_align_uses_answers_not_just_timing():
     assert abs(offset - 12.0) < 1e-6 and pairs == {0: 0, 1: 1, 2: 2} and n_agree == 3
     # A log sharing the schedule but with different answers agrees nowhere.
     assert align(log, onsets, [[8], [8], [8]])[2] == 0
+
+
+def test_state_rule_and_fence_sitters():
+    d = pd.DataFrame({"q1": [3, 2, 0, 1, 2], "q2": [0, 3, 1, 1, 2]})
+    assert state(d).fillna("-").tolist() == ["med", "mw", "-", "-", "mw"]  # MW beats MED on a tie

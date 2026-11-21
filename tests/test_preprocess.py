@@ -11,7 +11,10 @@ def test_previous_qa_end_uses_log_or_assumes_the_worst():
     markers = np.array([100.0, 130.0, 200.0])
     qa = {100.0: 9.0}  # 130 s has no log entry: gets UNKNOWN_QA_S (27 s)
     assert previous_qa_end(np.array([100.0, 130.0, 200.0]), markers, qa).tolist() == [
-        -np.inf, 109.0, 157.0]
+        -np.inf,
+        109.0,
+        157.0,
+    ]
 
 
 def test_epoch_flags_noisy_and_crowded_windows_without_dropping_them():

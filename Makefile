@@ -3,7 +3,7 @@
 BIDS ?= data/raw/ds001787
 JOBS ?= 4
 
-.PHONY: setup data labels preprocess features models figures test lint lab
+.PHONY: setup data labels preprocess features models expertise figures test lint lab
 
 setup:            ## install the pinned environment from uv.lock
 	uv sync
@@ -27,6 +27,9 @@ features:         ## stage 3a: band power + ERP windows per probe, label-blind -
 models: features  ## stage 3b: models A/B/C, leave-one-subject-out + permutations -> results/tables/
 	uv run python -m probe_eeg.models
 	$(MAKE) figures
+
+expertise: features  ## side angle: expert vs novice, tested beyond sex -> results/tables/
+	uv run python -m probe_eeg.expertise
 
 figures:          ## ERP sanity check and per-subject AUCs -> results/figures/
 	uv run python -m probe_eeg.figures

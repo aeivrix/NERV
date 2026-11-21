@@ -25,7 +25,8 @@ LOG_NAME = re.compile(r"sub(\d+)_+(?:(\d)_)?info(_old)?\.txt$")
 
 
 def parse_log(text: str) -> pd.DataFrame:
-    """One row per probe: log time, ratings q1-q3 (NaN if unanswered), Q1 latency.
+    """One row per probe: log time, ratings q1-q3 (NaN if unanswered), Q1 latency,
+    and qa_s, when the last key of this probe's Q&A landed.
 
     `status` is the question being answered (1-3) when the key is pressed; status 0
     means no question was pending. A non-digit key cancels the remaining questions.
@@ -34,15 +35,17 @@ def parse_log(text: str) -> pd.DataFrame:
     for line in text.splitlines():
         if m := PROBE_LINE.search(line):
             probes.append({"log_t": float(m[1]), "q1": np.nan, "q2": np.nan,
-                           "q3": np.nan, "rt1_s": np.nan})
+                           "q3": np.nan, "rt1_s": np.nan, "qa_s": np.nan})
         elif (m := KEY_LINE.search(line)) and probes:
             key, t, status = m[1], float(m[2]), int(m[3])
             p = probes[-1]
+            if 1 <= status <= 3:  # digit answers, or a cancel: both end the Q&A
+                p["qa_s"] = t - p["log_t"]
             if 1 <= status <= 3 and key.isdigit() and np.isnan(p[f"q{status}"]):
                 p[f"q{status}"] = int(key)
                 if status == 1:
                     p["rt1_s"] = t - p["log_t"]
-    return pd.DataFrame(probes, columns=["log_t", "q1", "q2", "q3", "rt1_s"])
+    return pd.DataFrame(probes, columns=["log_t", "q1", "q2", "q3", "rt1_s", "qa_s"])
 
 
 def read_events(path: Path) -> tuple[np.ndarray, list[list[int]]]:
@@ -149,6 +152,7 @@ def build(bids_root: Path, logs_zip: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                              "sex": participants.loc[sub, "gender"],
                              "probe": i, "onset_s": onsets[j],
                              "q1": r.q1, "q2": r.q2, "q3": r.q3, "rt1_s": r.rt1_s,
+                             "qa_s": r.qa_s,
                              "triggers_agree": ok})
         audit.append({"log": name, "subject": sub, "session": ses if assigned else None,
                       "assigned": assigned, "n_log_probes": len(log),

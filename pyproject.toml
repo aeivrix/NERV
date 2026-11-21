@@ -4,7 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "mne>=1.13",
-    "mne-bids>=0.20",
     "openneuro-py>=2026.9",
     "numpy>=2.5",
     "scipy>=1.18",

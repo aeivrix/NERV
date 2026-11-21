@@ -43,8 +43,9 @@ whose EEG answer triggers agree with the log. Results are in
 - **Late starts:** three recordings (`sub-003`, `sub-004` and `sub-022`, session 1 or
   2) have clock offsets of −1,200 to −1,700 s, meaning EEG started partway through the
   session. All of their probes still agree.
-- **Unmatched markers:** 7 extra probe markers in the EEG have no log entry
-  (e.g. `sub-001/ses-01`).
+- **Unmatched markers:** 20 probe markers in aligned recordings have no log entry.
+  Most recordings have one; `sub-021/ses-01` has 4, and `sub-023/ses-01` has 9, where
+  only 10 of its 19 probes align.
 
 ## Issue 3: group is confounded with sex
 

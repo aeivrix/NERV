@@ -10,6 +10,9 @@ dependencies = [
     "pandas>=3.0",
     "scikit-learn>=1.9",
     "matplotlib>=3.11",
+    "statsmodels>=0.15.0",
+    "pyriemann>=0.12",
+    "torch>=2.15.0",
 ]
 
 [dependency-groups]

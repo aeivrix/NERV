@@ -1,0 +1,245 @@
+<title>Mind Drift Replay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,500;1,400&display=swap">
+<style>
+/* Layout: one instrument panel. Picker and readouts on top, the session trace as the hero, notes below. */
+:root {
+  --paper: #f6f6f3; --panel: #ffffff; --ink: #1d2126; --muted: #5d6570; --rule: #dfe1dc; --grid: #ecede8;
+  --wander: #c2741a; --wander-soft: rgba(194,116,26,.18);
+  --settle: #3b5b9a; --settle-soft: rgba(59,91,154,.16);
+  --neither: #9aa1a9; --focus: #3b5b9a;
+  --display: "IBM Plex Serif", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #14171b; --panel: #1b1f24; --ink: #e6e8ea; --muted: #9ba3ad; --rule: #2c3238; --grid: #23282d;
+  --wander: #e3963f; --wander-soft: rgba(227,150,63,.20); --settle: #7f9fde; --settle-soft: rgba(127,159,222,.18);
+  --neither: #6f7780; --focus: #7f9fde; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #14171b; --panel: #1b1f24; --ink: #e6e8ea; --muted: #9ba3ad; --rule: #2c3238; --grid: #23282d;
+  --wander: #e3963f; --wander-soft: rgba(227,150,63,.20); --settle: #7f9fde; --settle-soft: rgba(127,159,222,.18);
+  --neither: #6f7780; --focus: #7f9fde; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 22px; }
+h1 { font: 500 clamp(1.7rem, 4vw, 2.4rem)/1.15 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.lede { color: var(--muted); max-width: 66ch; margin: 6px 0 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+select, button { font: 500 14px var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 8px 12px; }
+button { cursor: pointer; }
+select:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.readout { background: var(--panel); padding: 12px 14px; min-width: 0; }
+.readout .k { font-size: 12px; color: var(--muted); }
+.readout .v { font: 500 1.35rem/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+.readout .s { font-size: 12px; color: var(--muted); }
+.trace { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 14px 8px; position: relative; }
+canvas { display: block; width: 100%; height: 340px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); padding: 6px 2px 4px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font: 12px/1.45 var(--mono);
+  padding: 8px 10px; border-radius: 6px; max-width: 260px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.note p { margin: 0 0 8px; max-width: 62ch; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+th { font-weight: 500; color: var(--muted); font-size: 12px; }
+.cmd { display: flex; gap: 8px; align-items: stretch; }
+code.block { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 13px var(--mono); background: var(--panel);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 9px 12px; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Mind Drift Replay</h1>
+    <p class="lede">A 10-second EEG meter, swept across a whole meditation session every 2 seconds, then checked against what the meditator actually said each time a voice asked. Every session is scored by a model that never saw that person.</p>
+  </header>
+
+  <div class="controls">
+    <label for="session" class="k" style="color:var(--muted);font-size:13px">Session</label>
+    <select id="session"></select>
+    <button id="prev" type="button" aria-label="Previous session">←</button>
+    <button id="next" type="button" aria-label="Next session">→</button>
+  </div>
+
+  <div class="readouts" id="readouts"></div>
+
+  <section class="trace" aria-label="Session trace">
+    <canvas id="chart" role="img" aria-label="Meter reading over the session with probe answers"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--wander)"></span>probe answer: mind wandering</span>
+      <span><span class="sw" style="background:var(--settle)"></span>probe answer: meditating</span>
+      <span><span class="sw" style="background:var(--neither)"></span>in between</span>
+      <span>shaded trace: meter, 30 s average · gaps: Q&amp;A or artifacts</span>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+  </section>
+
+  <div class="cols">
+    <section class="note">
+      <h2>How to read it</h2>
+      <p>Above the line, the last 10 s look more like this person's mind-wandering moments; below, more like their settled ones. The scale is relative to the session, not absolute.</p>
+      <p>It is a weak signal. In these replays, the reading just before a wandering probe beats the one before a meditating probe from the same person 57% of the time (50% is a coin toss). Read the trend, not single wiggles.</p>
+      <p>Drowsiness and time on task explain part of it, and its accuracy differs a lot between people.</p>
+    </section>
+    <section>
+      <h2>What the study found</h2>
+      <table>
+        <thead><tr><th>Question</th><th style="text-align:right">AUC</th><th style="text-align:right">p</th></tr></thead>
+        <tbody>
+          <tr><td>10 s before the probe → state (model A)</td><td class="n">0.60</td><td class="n">0.021</td></tr>
+          <tr><td>Reaction to the voice → state (model B)</td><td class="n">0.49</td><td class="n">0.65</td></tr>
+          <tr><td>Both (model C)</td><td class="n">0.53</td><td class="n">0.31</td></tr>
+          <tr><td>EEG → expert vs novice</td><td class="n">0.69</td><td class="n">0.36*</td></tr>
+          <tr><td>EEG → sex</td><td class="n">0.92</td><td class="n">0.003</td></tr>
+          <tr><td>Second dataset (ds008836): before → depth</td><td class="n">0.54</td><td class="n">0.26</td></tr>
+          <tr><td>Second dataset: reaction → depth</td><td class="n">0.49</td><td class="n">0.61</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 0">AUCs within person, leave-one-person-out, permutation p-values. *Tested beyond what sex already explains.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>Run it on your own recording</h2>
+    <div class="cmd">
+      <code class="block" id="cmd">uv run python -m probe_eeg.meter --bdf my_session.bdf</code>
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin:8px 0 0">Any 64-channel BioSemi recording. It cleans the signal, sweeps the meter and writes a CSV and a plot next to it.</p>
+  </section>
+
+  <footer style="font-size:13px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px">
+    Code, data notes and the full report: <a href="https://github.com/aeivrix/NERV" style="color:var(--focus)">github.com/aeivrix/NERV</a> ·
+    EEG from <a href="https://openneuro.org/datasets/ds001787" style="color:var(--focus)">OpenNeuro ds001787</a> (Brandmeyer &amp; Delorme, CC0)
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let data = null, idx = 0, hits = [];
+
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+const stateOf = (p) => p.state === "mw" ? "wander" : p.state === "med" ? "settle" : "neither";
+const label = { wander: "mind wandering", settle: "meditating", neither: "in between" };
+
+function smooth(v, k = 15) {  // 30 s centred mean, skipping gaps
+  return v.map((_, i) => {
+    let s = 0, n = 0;
+    for (let j = Math.max(0, i - k / 2 | 0); j <= Math.min(v.length - 1, i + (k / 2 | 0)); j++)
+      if (v[j] !== null) { s += v[j]; n++; }
+    return v[i] === null || n < 5 ? null : s / n;
+  });
+}
+
+function sessionAuc(ps) {  // same-session pairs: P(wander reading > settle reading)
+  const w = ps.filter((p) => p.state === "mw" && p.reading !== null).map((p) => p.reading);
+  const m = ps.filter((p) => p.state === "med" && p.reading !== null).map((p) => p.reading);
+  if (!w.length || !m.length) return null;
+  let s = 0; for (const a of w) for (const b of m) s += a > b ? 1 : a === b ? .5 : 0;
+  return { auc: s / (w.length * m.length), n: w.length + m.length };
+}
+
+function readouts(sess) {
+  const per = data.check.per_subject[sess.subject];
+  const a = sessionAuc(sess.probes);
+  const rows = [
+    ["This session", a ? a.auc.toFixed(2) : "–", a ? `${a.n} probes with a clear answer` : "needs both kinds of answer"],
+    ["This person, all sessions", per !== undefined ? per.toFixed(2) : "–", "meter vs their answers (AUC)"],
+    ["Everyone", data.check.within_auc.toFixed(2), `${data.check.n_probes} probes, within person`],
+    ["Session", mmss(sess.t[sess.t.length - 1]), `${sess.group}, ${sess.probes.length} probes`],
+  ];
+  $("readouts").innerHTML = rows.map(([k, v, s]) =>
+    `<div class="readout"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+}
+
+function draw() {
+  const sess = data.sessions[idx], c = $("chart"), dpr = devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  c.width = W * dpr; c.height = H * dpr;
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const L = 44, R = 10, T = 26, B = 28, iw = W - L - R, ih = H - T - B;
+  const tmax = sess.t[sess.t.length - 1], ymax = 3;
+  const X = (t) => L + (t / tmax) * iw, Y = (v) => T + ih / 2 - (Math.max(-ymax, Math.min(ymax, v)) / ymax) * (ih / 2);
+
+  g.font = `11px ${css("--mono")}`; g.fillStyle = css("--muted"); g.strokeStyle = css("--grid"); g.lineWidth = 1;
+  const step = tmax > 2400 ? 600 : 300;
+  for (let t = 0; t <= tmax; t += step) {
+    g.beginPath(); g.moveTo(X(t), T); g.lineTo(X(t), T + ih); g.stroke();
+    g.textAlign = "center"; g.fillText(`${t / 60} min`, X(t), H - 8);
+  }
+  g.textAlign = "right";
+  for (const v of [-2, 0, 2]) g.fillText(v > 0 ? `+${v}` : `${v}`, L - 8, Y(v) + 4);
+  g.strokeStyle = css("--rule"); g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(L + iw, Y(0)); g.stroke();
+  g.textAlign = "left"; g.fillText("wandering-like ↑", L + 6, T + 12); g.fillText("settled-like ↓", L + 6, T + ih - 6);
+
+  const s = smooth(sess.score);
+  for (const [sign, fill] of [[1, "--wander-soft"], [-1, "--settle-soft"]]) {
+    g.fillStyle = css(fill);
+    for (let i = 1; i < s.length; i++) {
+      if (s[i] === null || s[i - 1] === null) continue;
+      const a = sign * s[i - 1] > 0 ? s[i - 1] : 0, b = sign * s[i] > 0 ? s[i] : 0;
+      g.beginPath(); g.moveTo(X(sess.t[i - 1]), Y(0)); g.lineTo(X(sess.t[i - 1]), Y(a));
+      g.lineTo(X(sess.t[i]), Y(b)); g.lineTo(X(sess.t[i]), Y(0)); g.fill();
+    }
+  }
+  g.strokeStyle = css("--ink"); g.lineWidth = 1.4; g.beginPath(); let pen = false;
+  s.forEach((v, i) => { if (v === null) { pen = false; return; }
+    pen ? g.lineTo(X(sess.t[i]), Y(v)) : g.moveTo(X(sess.t[i]), Y(v)); pen = true; });
+  g.stroke();
+
+  hits = sess.probes.map((p, i) => {
+    const x = X(p.onset_s), col = css(`--${stateOf(p)}`);
+    g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ih); g.stroke(); g.setLineDash([]);
+    g.fillStyle = col; g.beginPath(); g.arc(x, T - 10, 5, 0, 7); g.fill();
+    return { x, p, i };
+  });
+  readouts(sess);
+}
+
+function tip(ev) {
+  const r = $("chart").getBoundingClientRect(), mx = ev.clientX - r.left;
+  const h = hits.reduce((b, x) => Math.abs(x.x - mx) < Math.abs((b?.x ?? 1e9) - mx) ? x : b, null);
+  const t = $("tip");
+  if (!h || Math.abs(h.x - mx) > 10) { t.hidden = true; return; }
+  const p = h.p, f = (v) => v === null ? "–" : v;
+  t.innerHTML = `Probe ${h.i + 1} at ${mmss(p.onset_s)}<br>depth ${f(p.q1)} · wandering ${f(p.q2)} · drowsy ${f(p.q3)}<br>` +
+    `→ ${label[stateOf(p)]}<br>meter just before: ${p.reading === null ? "no clean reading" : p.reading.toFixed(2)}`;
+  t.hidden = false;
+  t.style.left = `${Math.min(h.x + 14, r.width - 270)}px`; t.style.top = "20px";
+}
+
+function pick(i) { idx = (i + data.sessions.length) % data.sessions.length; $("session").value = idx; draw(); }
+
+fetch("replay.json").then((r) => r.json()).then((d) => {
+  data = d;
+  const sel = $("session");
+  for (const grp of ["expert", "novice"]) {
+    const og = document.createElement("optgroup"); og.label = grp === "expert" ? "Experts" : "Novices";
+    d.sessions.forEach((s, i) => { if (s.group === grp) og.append(new Option(`${s.subject} · ${s.session}`, i)); });
+    sel.append(og);
+  }
+  sel.onchange = () => pick(+sel.value);
+  $("prev").onclick = () => pick(idx - 1); $("next").onclick = () => pick(idx + 1);
+  pick(0);  // no cherry-picking: open on the first session
+}).catch(() => { $("readouts").innerHTML = '<div class="readout empty">Replay data missing. Run <code>make demo</code>.</div>'; });
+
+$("chart").addEventListener("mousemove", tip);
+$("chart").addEventListener("mouseleave", () => ($("tip").hidden = true));
+addEventListener("resize", () => data && draw());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => data && draw());
+new MutationObserver(() => data && draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+$("copy").onclick = () => navigator.clipboard.writeText($("cmd").textContent)
+  .then(() => ($("copy").textContent = "Copied"))
+  .catch(() => getSelection().selectAllChildren($("cmd")));
+</script>

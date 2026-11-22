@@ -3,7 +3,7 @@
 BIDS ?= data/raw/ds001787
 JOBS ?= 4
 
-.PHONY: setup data labels preprocess features models expertise figures test lint lab
+.PHONY: setup data labels preprocess features models expertise explore replicate demo figures test lint lab
 
 setup:            ## install the pinned environment from uv.lock
 	uv sync
@@ -30,6 +30,16 @@ models: features  ## stage 3b: models A/B/C, leave-one-subject-out + permutation
 
 expertise: features  ## side angle: expert vs novice, tested beyond sex -> results/tables/
 	uv run python -m probe_eeg.expertise
+
+explore: models   ## stage 5 (exploratory): controls, H3, Riemannian + EEGNet -> results/tables/
+	uv run python -m probe_eeg.explore
+	uv run python -m probe_eeg.deep
+
+replicate:        ## stage 6: same pipeline on ds008836 (needs data/raw/ds008836) -> results/
+	uv run python -m probe_eeg.replicate
+
+demo: features    ## the meter swept over every session -> results/demo/ (open index.html)
+	uv run python -m probe_eeg.meter --replay
 
 figures:          ## ERP sanity check and per-subject AUCs -> results/figures/
 	uv run python -m probe_eeg.figures

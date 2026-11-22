@@ -49,3 +49,33 @@
 - Rating distribution (1: 48, 2: 139, 3: 238, 4: 176, 5: 58, invalid: 39).
 - The 2-subject label-blind ERP.
 - Per-block clean-epoch counts.
+
+## Results (1,000 permutations each)
+
+- **Voice delay:** the grand-average vertex N1 lands at 270 ms, so the voice arrives
+  0.17 s after the prompt marker. This was set before any label was read.
+- **Data:** 73 blocks, 72 usable. 375 probes from 37 people: 30 people have both
+  classes, and 13 have at least 3 of each.
+
+| Model | Within-subject AUC | 95% CI | p (perm) | p, C vs A |
+|---|---|---|---|---|
+| A: before the prompt | 0.536 | 0.473–0.597 | 0.258 | |
+| B: reaction to the prompt | 0.486 | 0.405–0.572 | 0.614 | |
+| C: both | 0.516 | 0.432–0.603 | 0.406 | 0.79 |
+
+- **R1 (A above chance): not replicated.** The interval still overlaps ds001787's
+  0.60 at its top, so the two results don't contradict each other, but this dataset
+  alone shows nothing.
+- **R2 (B at chance): as predicted.** The reaction to the probe carries no state
+  information in a second lab either.
+- **R3 (C doesn't beat A): as predicted.**
+
+## Why A might not travel
+
+- **The question differs:** ds008836 asks for the deepest level *since the last
+  report*, a rating of the past ~3 min. ds001787 asks about the moment.
+- **Less to learn from:** 375 probes, and only 13 people with at least 3 of each
+  class (ds001787: 490 and 17).
+- **Muscle-heavy recordings:** ICA removed a median of 12 of 25 components (ds001787:
+  7). These recordings carry more neck and jaw muscle activity, which band power soaks
+  up.

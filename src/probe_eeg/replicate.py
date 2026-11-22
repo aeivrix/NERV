@@ -47,7 +47,7 @@ def prompts(events: Path) -> pd.DataFrame:
                     "qa_s": conf.iloc[0] - t if len(conf) else UNKNOWN_QA_S,
                 }
             )
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["block", "probe", "onset_s", "depth", "qa_s"])
 
 
 def run(bids: Path, sub: str, ses: str, out: Path) -> list[dict]:

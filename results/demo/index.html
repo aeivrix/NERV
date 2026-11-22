@@ -87,7 +87,7 @@ code.block { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font:
     <section class="note">
       <h2>How to read it</h2>
       <p>Above the line, the last 10 s look more like this person's mind-wandering moments; below, more like their settled ones. The scale is relative to the session, not absolute.</p>
-      <p>It is a weak signal. Across everyone, a wandering probe outranks a meditating one from the same person about 60% of the time (50% is a coin toss). Read the trend, not single wiggles.</p>
+      <p>It is a weak signal. In these replays, the reading just before a wandering probe beats the one before a meditating probe from the same person 57% of the time (50% is a coin toss). Read the trend, not single wiggles.</p>
       <p>Drowsiness and time on task explain part of it, and its accuracy differs a lot between people.</p>
     </section>
     <section>
@@ -100,6 +100,8 @@ code.block { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font:
           <tr><td>Both (model C)</td><td class="n">0.53</td><td class="n">0.31</td></tr>
           <tr><td>EEG → expert vs novice</td><td class="n">0.69</td><td class="n">0.36*</td></tr>
           <tr><td>EEG → sex</td><td class="n">0.92</td><td class="n">0.003</td></tr>
+          <tr><td>Second dataset (ds008836): before → depth</td><td class="n">0.54</td><td class="n">0.26</td></tr>
+          <tr><td>Second dataset: reaction → depth</td><td class="n">0.49</td><td class="n">0.61</td></tr>
         </tbody>
       </table>
       <p style="font-size:12px;color:var(--muted);margin:8px 0 0">AUCs within person, leave-one-person-out, permutation p-values. *Tested beyond what sex already explains.</p>

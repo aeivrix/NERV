@@ -1,5 +1,7 @@
 # Does the brain's reaction to a question give away the answer?
 
+**Demo:** https://aeivrix.github.io/NERV/ (replay any session through the mind-wandering meter)
+
 During meditation, a recorded voice interrupts every ~30–90 s and asks people to rate
 their meditation depth, mind wandering and drowsiness. Most EEG studies decode
 mind wandering from the seconds *before* such a probe. This project tests whether the

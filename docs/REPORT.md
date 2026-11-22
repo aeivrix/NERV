@@ -33,7 +33,7 @@ before the person replies.
 6. **Replicated** on ds008836 with the same frozen pipeline
    ([REPLICATION.md](REPLICATION.md)).
 7. **Built a meter:** model A swept continuously across a session, with an interactive
-   replay ([demo](../results/demo/index.html)).
+   replay, live at https://aeivrix.github.io/NERV/.
 
 ## Findings
 

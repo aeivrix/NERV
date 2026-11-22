@@ -1,245 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mind Drift Replay</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,500;1,400&display=swap">
+<meta name="description" content="Replay 37 meditation sessions through an EEG mind-wandering meter, checked against what each meditator said.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap">
 <style>
-/* Layout: one instrument panel. Picker and readouts on top, the session trace as the hero, notes below. */
+/* Layout: a night-time instrument. Hero thesis, then the player (orb + readout over a full-width trace), probe feed beside it, findings and method below. */
 :root {
-  --paper: #f6f6f3; --panel: #ffffff; --ink: #1d2126; --muted: #5d6570; --rule: #dfe1dc; --grid: #ecede8;
-  --wander: #c2741a; --wander-soft: rgba(194,116,26,.18);
-  --settle: #3b5b9a; --settle-soft: rgba(59,91,154,.16);
-  --neither: #9aa1a9; --focus: #3b5b9a;
-  --display: "IBM Plex Serif", Georgia, serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --bg: #f3f2f7; --bg2: #e9e7f1; --panel: #ffffff; --ink: #191a2b; --muted: #5f6178; --rule: #dcdae6; --grid: #ebe9f2;
+  --wander: #d9772b; --wander-glow: rgba(217,119,43,.22);
+  --settle: #3f6fd1; --settle-glow: rgba(63,111,209,.20);
+  --neither: #9a9cb0; --play: #191a2b; --play-ink: #f3f2f7; --ok: #2f8f5b; --miss: #b8443c;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --paper: #14171b; --panel: #1b1f24; --ink: #e6e8ea; --muted: #9ba3ad; --rule: #2c3238; --grid: #23282d;
-  --wander: #e3963f; --wander-soft: rgba(227,150,63,.20); --settle: #7f9fde; --settle-soft: rgba(127,159,222,.18);
-  --neither: #6f7780; --focus: #7f9fde; color-scheme: dark } }
+  --bg: #0d0f1c; --bg2: #121528; --panel: #161a30; --ink: #ece9f7; --muted: #9295b4; --rule: #262b47; --grid: #1c2038;
+  --wander: #ff9f4d; --wander-glow: rgba(255,159,77,.28); --settle: #7aa2ff; --settle-glow: rgba(122,162,255,.26);
+  --neither: #6c7092; --play: #ece9f7; --play-ink: #0d0f1c; --ok: #5fd08f; --miss: #ff7a6e; color-scheme: dark } }
 :root[data-theme="dark"] {
-  --paper: #14171b; --panel: #1b1f24; --ink: #e6e8ea; --muted: #9ba3ad; --rule: #2c3238; --grid: #23282d;
-  --wander: #e3963f; --wander-soft: rgba(227,150,63,.20); --settle: #7f9fde; --settle-soft: rgba(127,159,222,.18);
-  --neither: #6f7780; --focus: #7f9fde; color-scheme: dark }
-body { background: var(--paper); color: var(--ink); font: 15px/1.55 var(--body); }
-.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: grid; gap: 22px; }
-h1 { font: 500 clamp(1.7rem, 4vw, 2.4rem)/1.15 var(--display); margin: 0; text-wrap: balance; }
-h2 { font: 600 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
-.lede { color: var(--muted); max-width: 66ch; margin: 6px 0 0; }
-.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-select, button { font: 500 14px var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--rule);
-  border-radius: 6px; padding: 8px 12px; }
-button { cursor: pointer; }
-select:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--rule);
-  border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
-.readout { background: var(--panel); padding: 12px 14px; min-width: 0; }
-.readout .k { font-size: 12px; color: var(--muted); }
-.readout .v { font: 500 1.35rem/1.3 var(--mono); font-variant-numeric: tabular-nums; }
-.readout .s { font-size: 12px; color: var(--muted); }
-.trace { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 14px 8px; position: relative; }
-canvas { display: block; width: 100%; height: 340px; }
-.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); padding: 6px 2px 4px; }
-.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
-.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font: 12px/1.45 var(--mono);
-  padding: 8px 10px; border-radius: 6px; max-width: 260px; }
-.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
-.note p { margin: 0 0 8px; max-width: 62ch; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); }
-td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
-th { font-weight: 500; color: var(--muted); font-size: 12px; }
-.cmd { display: flex; gap: 8px; align-items: stretch; }
-code.block { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 13px var(--mono); background: var(--panel);
-  border: 1px solid var(--rule); border-radius: 6px; padding: 9px 12px; }
-.empty { color: var(--muted); padding: 40px 0; text-align: center; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-</style>
+  --bg: #0d0f1c; --bg2: #121528; --panel: #161a30; --ink: #ece9f7; --muted: #9295b4; --rule: #262b47; --grid: #1c2038;
+  --wander: #ff9f4d; --wander-glow: rgba(255,159,77,.28); --settle: #7aa2ff; --settle-glow: rgba(122,162,255,.26);
+  --neither: #6c7092; --play: #ece9f7; --play-ink: #0d0f1c; --ok: #5fd08f; --miss: #ff7a6e; color-scheme: dark }
 
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+a { color: var(--settle); }
+:focus-visible { outline: 2px solid var(--settle); outline-offset: 3px; border-radius: 6px; }
+
+.hero { padding-block: 56px 28px; display: grid; gap: 18px; }
+.eyebrow { font: 500 12px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 clamp(2.4rem, 7vw, 4.6rem)/0.98 var(--display); letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+h1 em { font-style: normal; background: linear-gradient(90deg, var(--settle), var(--wander)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: 1.12rem; color: var(--muted); max-width: 60ch; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { display: flex; gap: 10px; align-items: baseline; background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 7px 14px; font-size: 13px; }
+.chip b { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+
+.player { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; padding-block: 12px 8px; }
+@media (max-width: 900px) { .player { grid-template-columns: minmax(0, 1fr); } }
+.stage { background: var(--panel); border: 1px solid var(--rule); border-radius: 18px; overflow: hidden; min-width: 0; }
+.top { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 18px; padding: 20px 20px 6px; align-items: center; }
+@media (max-width: 560px) { .top { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; } }
+.orb { width: 160px; max-width: 100%; aspect-ratio: 1; border-radius: 50%; position: relative; transition: transform .5s ease; }
+.orb::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, var(--glow, transparent) 0%, transparent 70%); }
+.orb::after { content: ""; position: absolute; inset: 24%; border-radius: 50%; background: var(--c, var(--neither)); box-shadow: 0 0 36px 4px var(--glow, transparent); transition: background .5s, box-shadow .5s; }
+.readout .state { font: 700 clamp(1.5rem, 3.5vw, 2.1rem)/1.1 var(--display); margin: 0; }
+.readout .num { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.clock { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 20px 14px; align-items: center; }
+button, select { font: 500 14px var(--body); color: var(--ink); background: var(--bg2); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+select { max-width: 100%; }
+#play { background: var(--play); color: var(--play-ink); border-color: var(--play); min-width: 104px; font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; padding: 8px 10px; font: 500 13px var(--mono); color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--bg2); color: var(--ink); }
+.pick { display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.trace { position: relative; padding: 0 12px 4px; }
+canvas { display: block; width: 100%; height: 240px; cursor: crosshair; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); padding: 4px 20px 16px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+
+.feed { background: var(--panel); border: 1px solid var(--rule); border-radius: 18px; display: flex; flex-direction: column; min-width: 0; max-height: 560px; }
+.feed header { padding: 16px 18px 12px; border-bottom: 1px solid var(--rule); }
+.feed h2 { margin: 0; font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tally { font: 700 1.8rem/1.2 var(--display); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.tally small { font: 400 13px/1.45 var(--body); color: var(--muted); display: block; }
+.cards { overflow-y: auto; padding: 10px 12px 14px; display: grid; gap: 8px; align-content: start; }
+.card { border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; font-size: 13px; animation: pop .35s ease both; }
+@keyframes pop { from { transform: translateY(6px); opacity: 0 } to { transform: none; opacity: 1 } }
+.card .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tag { font: 500 11px var(--mono); padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.verdict { font: 600 12px var(--body); }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 4px; }
+
+section.block { padding-block: 52px 8px; }
+h2.sec { font: 700 clamp(1.5rem, 3.4vw, 2.1rem)/1.1 var(--display); margin: 0 0 6px; letter-spacing: -.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 20px; max-width: 64ch; }
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.finding { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 18px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.finding .big { font: 700 2.4rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.finding .big.null { color: var(--muted); }
+.finding h3 { margin: 0; font: 600 15px var(--body); }
+.finding p { margin: 0; color: var(--muted); font-size: 14px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; counter-reset: s; }
+.step { border-top: 2px solid var(--ink); padding-top: 12px; }
+.step::before { counter-increment: s; content: "0" counter(s); font: 500 12px var(--mono); color: var(--muted); }
+.step h3 { margin: 4px 0; font: 600 15px var(--body); }
+.step p { margin: 0; font-size: 14px; color: var(--muted); }
+.cmd { display: flex; gap: 8px; flex-wrap: wrap; }
+code.block { flex: 1 1 320px; min-width: 0; overflow-x: auto; white-space: nowrap; font: 13px var(--mono); background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 11px 14px; }
+footer { padding-block: 52px 40px; color: var(--muted); font-size: 13px; }
+footer .wrap > div { border-top: 1px solid var(--rule); padding-top: 18px; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font: 12px/1.5 var(--mono); padding: 8px 10px; border-radius: 8px; max-width: 250px; z-index: 2; }
+@media (prefers-reduced-motion: reduce) { .orb, .orb::after, .card { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
 <div class="wrap">
-  <header>
-    <h1>Mind Drift Replay</h1>
-    <p class="lede">A 10-second EEG meter, swept across a whole meditation session every 2 seconds, then checked against what the meditator actually said each time a voice asked. Every session is scored by a model that never saw that person.</p>
+  <header class="hero">
+    <div class="eyebrow">OpenNeuro ds001787 · 37 sessions · 22 meditators · 64-channel EEG</div>
+    <h1>Mind <em>Drift</em> Replay</h1>
+    <p class="lede">Every 30–90 seconds a voice asked meditators whether their mind had wandered. Press play to watch a 10-second EEG meter run through a whole session, and see whether it agrees with what they said.</p>
+    <div class="chips">
+      <span class="chip">reaction to the voice → answer <b>0.49</b></span>
+      <span class="chip">10 s before → answer <b>0.60</b></span>
+      <span class="chip">EEG → sex <b>0.92</b></span>
+      <span class="chip">chance <b>0.50</b></span>
+    </div>
   </header>
 
-  <div class="controls">
-    <label for="session" class="k" style="color:var(--muted);font-size:13px">Session</label>
-    <select id="session"></select>
-    <button id="prev" type="button" aria-label="Previous session">←</button>
-    <button id="next" type="button" aria-label="Next session">→</button>
+  <div class="player">
+    <div class="stage">
+      <div class="top">
+        <div class="orb" id="orb" aria-hidden="true"></div>
+        <div class="readout" aria-live="polite">
+          <p class="state" id="state">Press play</p>
+          <div class="num" id="num">meter: –</div>
+          <div class="clock" id="clock">0:00 / 0:00</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="play" type="button">▶ Play</button>
+        <div class="seg" role="group" aria-label="Playback speed">
+          <button type="button" data-speed="30" aria-pressed="false">30×</button>
+          <button type="button" data-speed="60" aria-pressed="true">60×</button>
+          <button type="button" data-speed="180" aria-pressed="false">180×</button>
+        </div>
+        <div class="pick">
+          <label for="session" style="font-size:13px;color:var(--muted)">Session</label>
+          <select id="session"></select>
+          <button id="prev" type="button" aria-label="Previous session">←</button>
+          <button id="next" type="button" aria-label="Next session">→</button>
+        </div>
+      </div>
+      <div class="trace">
+        <canvas id="chart" role="img" aria-label="Meter trace for the session with probe answers; click to jump"></canvas>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--wander)"></span>said: mind wandering</span>
+        <span><span class="dot" style="background:var(--settle)"></span>said: meditating</span>
+        <span><span class="dot" style="background:var(--neither)"></span>in between</span>
+        <span>trace: 30 s average · gaps: Q&amp;A or artifacts · click to jump · space to play</span>
+      </div>
+    </div>
+
+    <aside class="feed" aria-label="Probe feed">
+      <header>
+        <h2>Probes so far</h2>
+        <div class="tally" id="tally">–<small>clear answers the meter agreed with</small></div>
+      </header>
+      <div class="cards" id="cards"><div class="empty">Probes appear here as the replay reaches them.</div></div>
+    </aside>
   </div>
 
-  <div class="readouts" id="readouts"></div>
-
-  <section class="trace" aria-label="Session trace">
-    <canvas id="chart" role="img" aria-label="Meter reading over the session with probe answers"></canvas>
-    <div class="legend">
-      <span><span class="sw" style="background:var(--wander)"></span>probe answer: mind wandering</span>
-      <span><span class="sw" style="background:var(--settle)"></span>probe answer: meditating</span>
-      <span><span class="sw" style="background:var(--neither)"></span>in between</span>
-      <span>shaded trace: meter, 30 s average · gaps: Q&amp;A or artifacts</span>
+  <section class="block">
+    <h2 class="sec">What the study found</h2>
+    <p class="sub">AUC within each person, tested on people the model never saw. 0.50 means it can't tell the two states apart. Across all replays the meter's sign matches the answer 53% of the time; ranked within a person, 57%.</p>
+    <div class="findings">
+      <article class="finding"><div class="big null">0.49</div><h3>The reaction gives nothing away</h3><p>The brain's first second of hearing the question doesn't predict the answer. Same in a second lab (0.49), and with Riemannian and EEGNet models.</p></article>
+      <article class="finding"><div class="big">0.60</div><h3>The 10 s before is a weak clue</h3><p>Significant here (p = 0.021), partly time on task, and not replicated on ds008836 (0.54). It's the meter in the player above.</p></article>
+      <article class="finding"><div class="big">0.92</div><h3>"Expert" decoders read sex</h3><p>Experts are mostly men, novices mostly women. EEG tells sex apart; expertise (0.69) isn't significant beyond it.</p></article>
+      <article class="finding"><div class="big">530</div><h3>Zero ratings hiding in plain sight</h3><p>events.tsv silently drops every 0 answer (530 in Q3 alone). True labels were recovered from the behavioural logs.</p></article>
     </div>
-    <div class="tip" id="tip" hidden></div>
   </section>
 
-  <div class="cols">
-    <section class="note">
-      <h2>How to read it</h2>
-      <p>Above the line, the last 10 s look more like this person's mind-wandering moments; below, more like their settled ones. The scale is relative to the session, not absolute.</p>
-      <p>It is a weak signal. In these replays, the reading just before a wandering probe beats the one before a meditating probe from the same person 57% of the time (50% is a coin toss). Read the trend, not single wiggles.</p>
-      <p>Drowsiness and time on task explain part of it, and its accuracy differs a lot between people.</p>
-    </section>
-    <section>
-      <h2>What the study found</h2>
-      <table>
-        <thead><tr><th>Question</th><th style="text-align:right">AUC</th><th style="text-align:right">p</th></tr></thead>
-        <tbody>
-          <tr><td>10 s before the probe → state (model A)</td><td class="n">0.60</td><td class="n">0.021</td></tr>
-          <tr><td>Reaction to the voice → state (model B)</td><td class="n">0.49</td><td class="n">0.65</td></tr>
-          <tr><td>Both (model C)</td><td class="n">0.53</td><td class="n">0.31</td></tr>
-          <tr><td>EEG → expert vs novice</td><td class="n">0.69</td><td class="n">0.36*</td></tr>
-          <tr><td>EEG → sex</td><td class="n">0.92</td><td class="n">0.003</td></tr>
-          <tr><td>Second dataset (ds008836): before → depth</td><td class="n">0.54</td><td class="n">0.26</td></tr>
-          <tr><td>Second dataset: reaction → depth</td><td class="n">0.49</td><td class="n">0.61</td></tr>
-        </tbody>
-      </table>
-      <p style="font-size:12px;color:var(--muted);margin:8px 0 0">AUCs within person, leave-one-person-out, permutation p-values. *Tested beyond what sex already explains.</p>
-    </section>
-  </div>
+  <section class="block">
+    <h2 class="sec">How the meter works</h2>
+    <p class="sub">Nothing tuned on results: the analysis was frozen in git before the model saw any real labels.</p>
+    <div class="steps">
+      <div class="step"><h3>Clean</h3><p>0.1–40 Hz filter, bad channels found and rebuilt, eye and muscle components removed with ICA.</p></div>
+      <div class="step"><h3>Read 10 seconds</h3><p>Theta, alpha and beta power on all 64 channels, scaled against the rest of that session.</p></div>
+      <div class="step"><h3>Score without you</h3><p>A shrinkage LDA trained on everyone except the person being replayed.</p></div>
+      <div class="step"><h3>Sweep</h3><p>A new reading every 2 s. Q&amp;A moments and jaw clenches are left blank instead of guessed.</p></div>
+    </div>
+  </section>
 
-  <section>
-    <h2>Run it on your own recording</h2>
+  <section class="block">
+    <h2 class="sec">Run it on your own recording</h2>
+    <p class="sub">Any 64-channel BioSemi file. You get a CSV of readings and a plot.</p>
     <div class="cmd">
       <code class="block" id="cmd">uv run python -m probe_eeg.meter --bdf my_session.bdf</code>
       <button id="copy" type="button">Copy</button>
     </div>
-    <p style="font-size:13px;color:var(--muted);margin:8px 0 0">Any 64-channel BioSemi recording. It cleans the signal, sweeps the meter and writes a CSV and a plot next to it.</p>
   </section>
-
-  <footer style="font-size:13px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px">
-    Code, data notes and the full report: <a href="https://github.com/aeivrix/NERV" style="color:var(--focus)">github.com/aeivrix/NERV</a> ·
-    EEG from <a href="https://openneuro.org/datasets/ds001787" style="color:var(--focus)">OpenNeuro ds001787</a> (Brandmeyer &amp; Delorme, CC0)
-  </footer>
 </div>
+
+<footer><div class="wrap"><div>
+  Code, report and data notes: <a href="https://github.com/aeivrix/NERV">github.com/aeivrix/NERV</a> ·
+  EEG: <a href="https://openneuro.org/datasets/ds001787">OpenNeuro ds001787</a> (Brandmeyer &amp; Delorme, CC0) ·
+  replication: <a href="https://openneuro.org/datasets/ds008836">ds008836</a>
+</div></div></footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-let data = null, idx = 0, hits = [];
+let data, sess, smooth, idx = 0, now = 0, speed = 60, playing = false, last = 0, shown = 0, geo = null;
 
-const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
-const stateOf = (p) => p.state === "mw" ? "wander" : p.state === "med" ? "settle" : "neither";
-const label = { wander: "mind wandering", settle: "meditating", neither: "in between" };
+const end = () => sess.t[sess.t.length - 1];
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const kind = (p) => (p.state === "mw" ? "wander" : p.state === "med" ? "settle" : "neither");
+const words = { wander: "mind wandering", settle: "meditating", neither: "in between" };
+const signed = (v) => (v > 0 ? "+" : "") + v.toFixed(2);
 
-function smooth(v, k = 15) {  // 30 s centred mean, skipping gaps
+function smoothen(v, k = 15) {  // 30 s centred mean, skipping gaps
   return v.map((_, i) => {
     let s = 0, n = 0;
-    for (let j = Math.max(0, i - k / 2 | 0); j <= Math.min(v.length - 1, i + (k / 2 | 0)); j++)
-      if (v[j] !== null) { s += v[j]; n++; }
+    for (let j = Math.max(0, i - (k >> 1)); j <= Math.min(v.length - 1, i + (k >> 1)); j++) if (v[j] !== null) { s += v[j]; n++; }
     return v[i] === null || n < 5 ? null : s / n;
   });
 }
-
-function sessionAuc(ps) {  // same-session pairs: P(wander reading > settle reading)
-  const w = ps.filter((p) => p.state === "mw" && p.reading !== null).map((p) => p.reading);
-  const m = ps.filter((p) => p.state === "med" && p.reading !== null).map((p) => p.reading);
-  if (!w.length || !m.length) return null;
-  let s = 0; for (const a of w) for (const b of m) s += a > b ? 1 : a === b ? .5 : 0;
-  return { auc: s / (w.length * m.length), n: w.length + m.length };
+function valueAt(t) {
+  if (t < sess.t[0]) return null;
+  return smooth[Math.min(smooth.length - 1, Math.round((t - sess.t[0]) / 2))];
 }
 
-function readouts(sess) {
-  const per = data.check.per_subject[sess.subject];
-  const a = sessionAuc(sess.probes);
-  const rows = [
-    ["This session", a ? a.auc.toFixed(2) : "–", a ? `${a.n} probes with a clear answer` : "needs both kinds of answer"],
-    ["This person, all sessions", per !== undefined ? per.toFixed(2) : "–", "meter vs their answers (AUC)"],
-    ["Everyone", data.check.within_auc.toFixed(2), `${data.check.n_probes} probes, within person`],
-    ["Session", mmss(sess.t[sess.t.length - 1]), `${sess.group}, ${sess.probes.length} probes`],
-  ];
-  $("readouts").innerHTML = rows.map(([k, v, s]) =>
-    `<div class="readout"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+function clearFeed() { shown = 0; $("cards").innerHTML = '<div class="empty">Probes appear here as the replay reaches them.</div>'; }
+
+function load(i) {
+  idx = (i + data.sessions.length) % data.sessions.length;
+  sess = data.sessions[idx]; smooth = smoothen(sess.score);
+  $("session").value = idx; now = 0; clearFeed(); tally(); draw(); readout(); setPlaying(false);
+}
+
+function readout() {
+  const v = valueAt(now), orb = $("orb"), k = v === null ? "neither" : v > 0 ? "wander" : "settle";
+  $("state").textContent = v === null ? (now === 0 ? "Press play" : "No clean reading") : v > 0 ? "Wandering-like" : "Settled-like";
+  $("state").style.color = v === null ? "var(--muted)" : `var(--${k})`;
+  $("num").textContent = `meter: ${v === null ? "–" : signed(v)}`;
+  $("clock").textContent = `${mmss(now)} / ${mmss(end())} · ${sess.subject} · ${sess.group}`;
+  orb.style.setProperty("--c", `var(--${k})`);
+  orb.style.setProperty("--glow", v === null ? "transparent" : `var(--${k}-glow)`);
+  orb.style.transform = `scale(${v === null ? 0.8 : 0.82 + Math.min(Math.abs(v), 2.5) * 0.07})`;
+}
+
+function tally() {
+  const clear = sess.probes.slice(0, shown).filter((p) => p.state && p.reading !== null);
+  const ok = clear.filter((p) => (p.reading > 0) === (p.state === "mw")).length;
+  $("tally").innerHTML = (clear.length ? `${ok} of ${clear.length}` : "–") +
+    "<small>clear answers the meter agreed with (sign of the reading just before the voice)</small>";
+}
+
+function card(p, i) {
+  const k = kind(p), r = p.reading, clear = p.state && r !== null, ok = clear && (r > 0) === (p.state === "mw");
+  const el = document.createElement("div");
+  el.className = "card";
+  el.innerHTML = `<div class="row"><span style="font:500 12px var(--mono);color:var(--muted)">probe ${i + 1} · ${mmss(p.onset_s)}</span>
+    <span class="tag" style="color:var(--${k})">${words[k]}</span></div>
+    <div class="row"><span>depth ${p.q1 ?? "–"} · wandering ${p.q2 ?? "–"} · drowsy ${p.q3 ?? "–"}</span>
+    <span class="verdict" style="color:${!clear ? "var(--muted)" : ok ? "var(--ok)" : "var(--miss)"}">${r === null ? "no reading" : !clear ? "not scored" : ok ? "✓ agreed" : "✗ missed"}</span></div>
+    <div style="font:12px var(--mono);color:var(--muted)">meter just before: ${r === null ? "–" : signed(r)}</div>`;
+  const box = $("cards"); if (box.firstElementChild?.classList.contains("empty")) box.innerHTML = "";
+  box.prepend(el);
+}
+
+function catchUp() {
+  while (shown < sess.probes.length && sess.probes[shown].onset_s <= now) { card(sess.probes[shown], shown); shown++; }
+  tally();
 }
 
 function draw() {
-  const sess = data.sessions[idx], c = $("chart"), dpr = devicePixelRatio || 1;
-  const W = c.clientWidth, H = c.clientHeight;
+  const c = $("chart"), dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
   c.width = W * dpr; c.height = H * dpr;
   const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-  const L = 44, R = 10, T = 26, B = 28, iw = W - L - R, ih = H - T - B;
-  const tmax = sess.t[sess.t.length - 1], ymax = 3;
-  const X = (t) => L + (t / tmax) * iw, Y = (v) => T + ih / 2 - (Math.max(-ymax, Math.min(ymax, v)) / ymax) * (ih / 2);
-
+  const L = 30, R = 8, T = 22, B = 24, iw = W - L - R, ih = H - T - B, tmax = end(), ym = 2.5;
+  const X = (t) => L + (t / tmax) * iw, Y = (v) => T + ih / 2 - (Math.max(-ym, Math.min(ym, v)) / ym) * (ih / 2);
+  geo = { X, L, iw, tmax };
   g.font = `11px ${css("--mono")}`; g.fillStyle = css("--muted"); g.strokeStyle = css("--grid"); g.lineWidth = 1;
-  const step = tmax > 2400 ? 600 : 300;
-  for (let t = 0; t <= tmax; t += step) {
-    g.beginPath(); g.moveTo(X(t), T); g.lineTo(X(t), T + ih); g.stroke();
-    g.textAlign = "center"; g.fillText(`${t / 60} min`, X(t), H - 8);
-  }
-  g.textAlign = "right";
-  for (const v of [-2, 0, 2]) g.fillText(v > 0 ? `+${v}` : `${v}`, L - 8, Y(v) + 4);
+  const step = tmax > 2400 ? 600 : 300; g.textAlign = "center";
+  for (let t = 0; t <= tmax; t += step) { g.beginPath(); g.moveTo(X(t), T); g.lineTo(X(t), T + ih); g.stroke(); g.fillText(`${t / 60}m`, X(t), H - 6); }
   g.strokeStyle = css("--rule"); g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(L + iw, Y(0)); g.stroke();
-  g.textAlign = "left"; g.fillText("wandering-like ↑", L + 6, T + 12); g.fillText("settled-like ↓", L + 6, T + ih - 6);
-
-  const s = smooth(sess.score);
-  for (const [sign, fill] of [[1, "--wander-soft"], [-1, "--settle-soft"]]) {
-    g.fillStyle = css(fill);
-    for (let i = 1; i < s.length; i++) {
-      if (s[i] === null || s[i - 1] === null) continue;
-      const a = sign * s[i - 1] > 0 ? s[i - 1] : 0, b = sign * s[i] > 0 ? s[i] : 0;
-      g.beginPath(); g.moveTo(X(sess.t[i - 1]), Y(0)); g.lineTo(X(sess.t[i - 1]), Y(a));
-      g.lineTo(X(sess.t[i]), Y(b)); g.lineTo(X(sess.t[i]), Y(0)); g.fill();
+  g.textAlign = "right"; g.fillStyle = css("--wander"); g.fillText("▲", L - 8, Y(1.6) + 4); g.fillStyle = css("--settle"); g.fillText("▼", L - 8, Y(-1.6) + 4);
+  for (const [sign, col] of [[1, "--wander"], [-1, "--settle"]]) {
+    g.fillStyle = css(col); g.globalAlpha = 0.35;
+    for (let i = 1; i < smooth.length; i++) {
+      const a0 = smooth[i - 1], a1 = smooth[i]; if (a0 === null || a1 === null) continue;
+      const a = sign * a0 > 0 ? a0 : 0, b = sign * a1 > 0 ? a1 : 0;
+      g.beginPath(); g.moveTo(X(sess.t[i - 1]), Y(0)); g.lineTo(X(sess.t[i - 1]), Y(a)); g.lineTo(X(sess.t[i]), Y(b)); g.lineTo(X(sess.t[i]), Y(0)); g.fill();
     }
+    g.globalAlpha = 1;
   }
-  g.strokeStyle = css("--ink"); g.lineWidth = 1.4; g.beginPath(); let pen = false;
-  s.forEach((v, i) => { if (v === null) { pen = false; return; }
-    pen ? g.lineTo(X(sess.t[i]), Y(v)) : g.moveTo(X(sess.t[i]), Y(v)); pen = true; });
+  g.strokeStyle = css("--ink"); g.lineWidth = 1.3; g.beginPath(); let pen = false;
+  smooth.forEach((v, i) => { if (v === null) { pen = false; return; } pen ? g.lineTo(X(sess.t[i]), Y(v)) : g.moveTo(X(sess.t[i]), Y(v)); pen = true; });
   g.stroke();
-
-  hits = sess.probes.map((p, i) => {
-    const x = X(p.onset_s), col = css(`--${stateOf(p)}`);
-    g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([3, 3]);
-    g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ih); g.stroke(); g.setLineDash([]);
-    g.fillStyle = col; g.beginPath(); g.arc(x, T - 10, 5, 0, 7); g.fill();
-    return { x, p, i };
+  sess.probes.forEach((p) => {
+    const x = X(p.onset_s), col = css(`--${kind(p)}`);
+    g.strokeStyle = col; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ih); g.stroke(); g.setLineDash([]);
+    g.fillStyle = col; g.beginPath(); g.arc(x, T - 9, 4.5, 0, 7); g.fill();
   });
-  readouts(sess);
+  if (now > 0) {  // what's been played stays bright; the rest of the session waits in the dark
+    g.fillStyle = css("--panel"); g.globalAlpha = 0.6; g.fillRect(X(now), T - 16, L + iw - X(now), ih + 16); g.globalAlpha = 1;
+    g.strokeStyle = css("--ink"); g.lineWidth = 2; g.beginPath(); g.moveTo(X(now), T - 16); g.lineTo(X(now), T + ih); g.stroke();
+  }
 }
 
-function tip(ev) {
-  const r = $("chart").getBoundingClientRect(), mx = ev.clientX - r.left;
-  const h = hits.reduce((b, x) => Math.abs(x.x - mx) < Math.abs((b?.x ?? 1e9) - mx) ? x : b, null);
-  const t = $("tip");
-  if (!h || Math.abs(h.x - mx) > 10) { t.hidden = true; return; }
-  const p = h.p, f = (v) => v === null ? "–" : v;
-  t.innerHTML = `Probe ${h.i + 1} at ${mmss(p.onset_s)}<br>depth ${f(p.q1)} · wandering ${f(p.q2)} · drowsy ${f(p.q3)}<br>` +
-    `→ ${label[stateOf(p)]}<br>meter just before: ${p.reading === null ? "no clean reading" : p.reading.toFixed(2)}`;
-  t.hidden = false;
-  t.style.left = `${Math.min(h.x + 14, r.width - 270)}px`; t.style.top = "20px";
+function frame(ts) {
+  if (!playing) return;
+  const dt = last ? Math.min((ts - last) / 1000, 0.25) : 0; last = ts;
+  now = Math.min(now + dt * speed, end());
+  catchUp(); readout(); draw();
+  if (now >= end()) { setPlaying(false); return; }
+  requestAnimationFrame(frame);
 }
-
-function pick(i) { idx = (i + data.sessions.length) % data.sessions.length; $("session").value = idx; draw(); }
+function setPlaying(on) {
+  if (on && now >= end()) { now = 0; clearFeed(); }
+  playing = on; last = 0;
+  $("play").textContent = on ? "❚❚ Pause" : now > 0 && now < end() ? "▶ Resume" : "▶ Play";
+  if (on) requestAnimationFrame(frame);
+}
+function seek(t) {
+  now = Math.max(0, Math.min(t, end()));
+  if (shown && sess.probes[shown - 1].onset_s > now) clearFeed();
+  catchUp(); readout(); draw();
+  if (!playing) $("play").textContent = now > 0 && now < end() ? "▶ Resume" : "▶ Play";
+}
 
 fetch("replay.json").then((r) => r.json()).then((d) => {
   data = d;
-  const sel = $("session");
   for (const grp of ["expert", "novice"]) {
     const og = document.createElement("optgroup"); og.label = grp === "expert" ? "Experts" : "Novices";
     d.sessions.forEach((s, i) => { if (s.group === grp) og.append(new Option(`${s.subject} · ${s.session}`, i)); });
-    sel.append(og);
+    $("session").append(og);
   }
-  sel.onchange = () => pick(+sel.value);
-  $("prev").onclick = () => pick(idx - 1); $("next").onclick = () => pick(idx + 1);
-  pick(0);  // no cherry-picking: open on the first session
-}).catch(() => { $("readouts").innerHTML = '<div class="readout empty">Replay data missing. Run <code>make demo</code>.</div>'; });
+  load(0);  // the first session, not a hand-picked one
+}).catch(() => { $("state").textContent = "Replay data missing"; $("num").textContent = "run: make demo"; });
 
-$("chart").addEventListener("mousemove", tip);
+$("play").onclick = () => sess && setPlaying(!playing);
+$("session").onchange = (e) => load(+e.target.value);
+$("prev").onclick = () => load(idx - 1);
+$("next").onclick = () => load(idx + 1);
+document.querySelectorAll("[data-speed]").forEach((b) => (b.onclick = () => {
+  speed = +b.dataset.speed;
+  document.querySelectorAll("[data-speed]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+$("chart").addEventListener("click", (e) => { if (geo) { const r = e.target.getBoundingClientRect(); seek(((e.clientX - r.left - geo.L) / geo.iw) * geo.tmax); } });
+$("chart").addEventListener("mousemove", (e) => {
+  if (!geo) return;
+  const r = e.target.getBoundingClientRect(), mx = e.clientX - r.left, tip = $("tip");
+  const hit = sess.probes.map((p, i) => ({ p, i, d: Math.abs(geo.X(p.onset_s) - mx) })).sort((a, b) => a.d - b.d)[0];
+  if (!hit || hit.d > 8) { tip.hidden = true; return; }
+  tip.hidden = false;
+  tip.innerHTML = `probe ${hit.i + 1} · ${mmss(hit.p.onset_s)}<br>said: ${words[kind(hit.p)]}<br>depth ${hit.p.q1 ?? "–"} · wandering ${hit.p.q2 ?? "–"} · drowsy ${hit.p.q3 ?? "–"}`;
+  tip.style.left = `${Math.min(mx + 14, r.width - 250)}px`; tip.style.top = "8px";
+});
 $("chart").addEventListener("mouseleave", () => ($("tip").hidden = true));
-addEventListener("resize", () => data && draw());
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => data && draw());
-new MutationObserver(() => data && draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+addEventListener("resize", () => sess && draw());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => sess && draw());
+addEventListener("keydown", (e) => { if (e.code === "Space" && e.target === document.body && sess) { e.preventDefault(); setPlaying(!playing); } });
 $("copy").onclick = () => navigator.clipboard.writeText($("cmd").textContent)
-  .then(() => ($("copy").textContent = "Copied"))
+  .then(() => { $("copy").textContent = "Copied"; setTimeout(() => ($("copy").textContent = "Copy"), 1500); })
   .catch(() => getSelection().selectAllChildren($("cmd")));
 </script>
+</body>
+</html>

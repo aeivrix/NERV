@@ -116,6 +116,11 @@ code.block { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font:
     </div>
     <p style="font-size:13px;color:var(--muted);margin:8px 0 0">Any 64-channel BioSemi recording. It cleans the signal, sweeps the meter and writes a CSV and a plot next to it.</p>
   </section>
+
+  <footer style="font-size:13px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px">
+    Code, data notes and the full report: <a href="https://github.com/aeivrix/NERV" style="color:var(--focus)">github.com/aeivrix/NERV</a> ·
+    EEG from <a href="https://openneuro.org/datasets/ds001787" style="color:var(--focus)">OpenNeuro ds001787</a> (Brandmeyer &amp; Delorme, CC0)
+  </footer>
 </div>
 
 <script>
@@ -227,7 +232,7 @@ fetch("replay.json").then((r) => r.json()).then((d) => {
   sel.onchange = () => pick(+sel.value);
   $("prev").onclick = () => pick(idx - 1); $("next").onclick = () => pick(idx + 1);
   pick(0);  // no cherry-picking: open on the first session
-}).catch(() => { $("readouts").innerHTML = '<div class="readout empty">Replay data missing. Run <code>python -m probe_eeg.meter --replay</code>.</div>'; });
+}).catch(() => { $("readouts").innerHTML = '<div class="readout empty">Replay data missing. Run <code>make demo</code>.</div>'; });
 
 $("chart").addEventListener("mousemove", tip);
 $("chart").addEventListener("mouseleave", () => ($("tip").hidden = true));

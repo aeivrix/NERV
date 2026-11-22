@@ -1,5 +1,7 @@
 # Does the brain's reaction to a question give away the answer?
 
+**Demo:** https://aeivrix.github.io/NERV/ (replay any session through the mind-wandering meter)
+
 During meditation, a recorded voice interrupts every ~30–90 s and asks people to rate
 their meditation depth, mind wandering and drowsiness. Most EEG studies decode
 mind wandering from the seconds *before* such a probe. This project tests whether the
@@ -27,6 +29,10 @@ make data      # download ds001787 (~6 GB) and the behavioural logs into data/ra
 make labels    # stage 1: true ratings from the logs, aligned to the EEG
 make preprocess  # stage 2: filter, ICA, probe-locked epochs (~1 h)
 make models    # stage 3: features, models A/B/C, permutation tests (~1 h)
+make expertise # side angle: expert vs novice, tested beyond sex
+make explore   # stage 5 (exploratory): controls, H3, Riemannian + EEGNet
+make replicate # stage 6: same pipeline on ds008836
+make demo      # the mind-wandering meter replay -> results/demo/index.html
 make test
 ```
 

@@ -17,7 +17,12 @@ mne.set_log_level("error")
 VERTEX = ["Cz", "FCz", "C1", "C2", "FC1", "FC2"]  # where hearing a voice shows up first
 
 
-def erp_figure(epochs_dir: Path, fig_path: Path) -> float:
+def erp_figure(
+    epochs_dir: Path,
+    fig_path: Path,
+    n1_search: tuple[float, float] = (SOUND_DELAY_S + 0.05, SOUND_DELAY_S + 0.25),
+    delay: float | None = SOUND_DELAY_S,
+) -> float:
     """Grand-average voice ERP, labels unseen (no peeking pre-registration); returns N1 (s)."""
     per_subject = {}
     for f in sorted(epochs_dir.glob("*-epo.fif")):
@@ -31,14 +36,15 @@ def erp_figure(epochs_dir: Path, fig_path: Path) -> float:
     t = ep.times
     subs = np.array([np.concatenate(v).mean(0) for v in per_subject.values()])
     mean, sem = subs.mean(0), subs.std(0, ddof=1) / np.sqrt(len(subs))
-    win = (t > SOUND_DELAY_S + 0.05) & (t < SOUND_DELAY_S + 0.25)  # N1 lives here
+    win = (t > n1_search[0]) & (t < n1_search[1])  # N1 lives here
     n1 = float(t[win][np.argmin(mean[win])])
 
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.plot(t * 1e3, mean, color="C0", label=f"all clean probes ({len(subs)} subjects)")
     ax.fill_between(t * 1e3, mean - sem, mean + sem, color="C0", alpha=0.25)
     ax.axvline(0, color="k", lw=0.8)
-    ax.axvline(SOUND_DELAY_S * 1e3, color="k", ls=":", lw=0.8, label="voice reaches the ear")
+    if delay is not None:
+        ax.axvline(delay * 1e3, color="k", ls=":", lw=0.8, label="voice reaches the ear")
     ax.axvline(n1 * 1e3, color="grey", ls="--", lw=0.8, label=f"N1 at {n1 * 1e3:.0f} ms")
     ax.set(
         xlabel="ms after probe trigger",

@@ -26,9 +26,8 @@ def dataset(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby(["subject", "session"])[feats]
     # Scaled on every clean probe, fence-sitters too: no label ever touches the scaling.
     z = ((df[feats] - g.transform("mean")) / g.transform("std")).fillna(0.0)
-    df = pd.concat(
-        [df.drop(columns=feats), z, state(df).map({"mw": 1, "med": 0}).rename("y")], axis=1
-    )
+    y = df.y if "y" in df else state(df).map({"mw": 1, "med": 0})  # other datasets bring their own
+    df = pd.concat([df.drop(columns=[*feats, "y"], errors="ignore"), z, y.rename("y")], axis=1)
     return df.dropna(subset=["y"]).astype({"y": int}).reset_index(drop=True)
 
 
